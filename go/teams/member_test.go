@@ -1,6 +1,7 @@
 package teams
 
 import (
+	"bytes"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -8,10 +9,11 @@ import (
 	"github.com/keybase/client/go/kbtest"
 	"github.com/keybase/client/go/libkb"
 	"github.com/keybase/client/go/protocol/keybase1"
+	"github.com/stretchr/testify/require"
 )
 
 func memberSetup(t *testing.T) (libkb.TestContext, *kbtest.FakeUser, string) {
-	tc := libkb.SetupTest(t, "team", 1)
+	tc := SetupTest(t, "team", 1)
 	tc.Tp.UpgradePerUserKey = true
 
 	u, err := kbtest.CreateAndSignupFakeUser("team", tc.G)
@@ -25,7 +27,7 @@ func memberSetup(t *testing.T) (libkb.TestContext, *kbtest.FakeUser, string) {
 }
 
 func memberSetupMultiple(t *testing.T) (tc libkb.TestContext, owner, other *kbtest.FakeUser, name string) {
-	tc = libkb.SetupTest(t, "team", 1)
+	tc = SetupTest(t, "team", 1)
 	tc.Tp.UpgradePerUserKey = true
 
 	other, err := kbtest.CreateAndSignupFakeUser("team", tc.G)
@@ -168,7 +170,9 @@ func TestMemberAddHasBoxes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, boxes, err := tm.changeMembershipSection(context.TODO(), req)
+	keyManager, err := tm.getKeyManager()
+	require.NoError(t, err)
+	_, boxes, err := tm.changeMembershipSection(context.TODO(), keyManager, req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +205,9 @@ func TestMemberChangeRoleNoBoxes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, boxes, err := tm.changeMembershipSection(context.TODO(), req)
+	keyManager, err := tm.getKeyManager()
+	require.NoError(t, err)
+	_, boxes, err := tm.changeMembershipSection(context.TODO(), keyManager, req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,9 +224,9 @@ func TestMemberRemoveRotatesKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if before.Box.Generation != 1 {
-		t.Fatalf("initial team generation: %d, expected 1", before.Box.Generation)
-	}
+	require.Equal(t, 1, before.GetPerTeamKeyGeneration(), "initial team key generation")
+	beforeSecret, err := before.SharedSecret(context.TODO())
+	require.NoError(t, err)
 
 	if err := SetRoleWriter(context.TODO(), tc.G, name, other.Username); err != nil {
 		t.Fatal(err)
@@ -236,12 +242,12 @@ func TestMemberRemoveRotatesKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if after.Box.Generation != 2 {
-		t.Errorf("after member remove: team generation: %d, expected 2", after.Box.Generation)
-	}
+	require.Equal(t, 2, after.GetPerTeamKeyGeneration(), "after member remove: team key generation")
 
-	if after.Box.Ctext == before.Box.Ctext {
-		t.Error("TeamBox.Ctext did not change when member removed")
+	afterSecret, err := after.SharedSecret(context.TODO())
+	require.NoError(t, err)
+	if bytes.Equal(beforeSecret, afterSecret) {
+		t.Fatal("Team secret did not change when member removed")
 	}
 }
 

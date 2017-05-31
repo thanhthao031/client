@@ -98,6 +98,7 @@ func ChangeRoles(ctx context.Context, g *libkb.GlobalContext, teamname string, r
 	if err != nil {
 		return err
 	}
+
 	return t.ChangeMembership(ctx, req)
 }
 
