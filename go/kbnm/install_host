@@ -17,21 +17,28 @@ realpath() {
 }
 
 detect() {
+  local chrome_file="io.keybase.kbnm.json"
+  local firefox_file="keybase.json"
+
   # Find where the NativeMessagingHosts whitelist lives for this platform.
   whoami="$(whoami)"
   if [[ "$(uname -s)" == "Darwin" ]]; then
     # Mac
     if [[ "$whoami" == "root" ]]; then
-      echo "/Library/Google/Chrome/NativeMessagingHosts"
+      echo "/Library/Google/Chrome/NativeMessagingHosts/${chrome_file}"
+      echo "/Library/Application Support/Mozilla/NativeMessagingHosts/${firefox_file}"
     else
-      echo "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
+      echo "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts/${chrome_file}"
+      echo "$HOME/Library/Application Support/Mozilla/NativeMessagingHosts/${firefox_file}"
     fi
   else
     # Linux
     if [[ "$whoami" == "root" ]]; then
-      echo "/etc/opt/chrome/native-messaging-hosts"
+      echo "/etc/opt/chrome/native-messaging-hosts/${chrome_file}"
+      echo "/usr/lib/mozilla/native-messaging-hosts/${firefox_file}"
     else
-      echo "$HOME/.config/google-chrome/NativeMessagingHosts"
+      echo "$HOME/.config/google-chrome/NativeMessagingHosts/${chrome_file}"
+      echo "$HOME/.mozilla/native-messaging-hosts/${firefox_file}"
     fi
   fi
 }
@@ -74,7 +81,7 @@ uninstall() {
   # Uninstall the whitelist.
   declare target="$1"
 
-  rm "$target" && echo "Removed Chrome NativeMessaging whitelist: $target" || echo "Install not found: $target"
+  rm "$target" && echo "Removed NativeMessaging whitelist: $target" || echo "Install not found: $target"
 }
 
 
@@ -83,14 +90,13 @@ main() {
 
   declare cmd="${1:-}"
 
-  readonly host_name="io.keybase.kbnm"
-  local target="$(detect)/${host_name}.json"
-
-  if [[ "$cmd" == "uninstall" ]]; then
-    uninstall "$target"
-  else
-    install "$target"
-  fi
+  detect | while read target; do
+    if [[ "$cmd" == "uninstall" ]]; then
+      uninstall "$target"
+    else
+      install "$target"
+    fi
+  done
 }
 
 
