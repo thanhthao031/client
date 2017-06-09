@@ -493,6 +493,7 @@ func (t *TeamSigChainPlayer) addInnerLink(prevState *TeamSigChainState, link SCC
 			return res, err
 		}
 
+		// TODO check that team name has no dots
 		teamName, err := TeamNameFromString(string(*team.Name))
 		if err != nil {
 			return res, err
@@ -667,7 +668,31 @@ func (t *TeamSigChainPlayer) addInnerLink(prevState *TeamSigChainState, link SCC
 	case "team.subteam_head":
 		return res, fmt.Errorf("subteams not supported: %s", payload.Body.Type)
 	case "team.new_subteam":
-		return res, fmt.Errorf("subteams not supported: %s", payload.Body.Type)
+		err = libkb.PickFirstError(
+			hasPrevState(true),
+			hasName(false),
+			hasMembers(false),
+			hasParent(false),
+			hasSubteam(true))
+		if err != nil {
+			return res, err
+		}
+
+		// TODO check that team name has no dots
+		_, err := TeamNameFromString(string(team.Subteam.Name))
+		if err != nil {
+			return res, err
+		}
+
+		// TODO validate subteam ID
+		// team.Subteam.ID
+
+		// TODO store subteam info
+		// TODO make sure subteam IDs and names don't collide
+
+		res.newState = prevState.DeepCopy()
+
+		return res, nil
 	case "team.subteam_rename":
 		return res, fmt.Errorf("subteams not supported: %s", payload.Body.Type)
 	case "":

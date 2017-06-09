@@ -60,6 +60,10 @@ func TestLoadAfterPromotion(t *testing.T) {
 	err := SetRoleReader(context.TODO(), tcs[0].G, teamName, fus[1].Username)
 	require.NoError(t, err)
 
+	t.Logf("u0 adds a subteam")
+	err = CreateSubteam(context.TODO(), tcs[0].G, "smilers", TeamName(teamName))
+	require.NoError(t, err)
+
 	t.Logf("u1 loads the team")
 	u1uv, err := loadUserVersionByUID(context.TODO(), tcs[1].G, tcs[1].G.Env.GetUID())
 	require.NoError(t, err)
@@ -71,8 +75,6 @@ func TestLoadAfterPromotion(t *testing.T) {
 	role, err := team.GetSigChainState().GetUserRole(u1uv)
 	require.NoError(t, err)
 	require.Equal(t, keybase1.TeamRole_READER, role)
-
-	t.Fatalf("TODO this test must actually include one of the problematic links. Otherwise checkStubbed passes no matter what.")
 
 	t.Logf("u0 makes u1 an admin")
 	err = SetRoleAdmin(context.TODO(), tcs[0].G, teamName, fus[1].Username)
