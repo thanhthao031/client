@@ -220,6 +220,10 @@
             "items": "ReaderKeyMask"
           },
           "name": "readerKeyMasks"
+        },
+        {
+          "type": "Time",
+          "name": "cachedAt"
         }
       ]
     },

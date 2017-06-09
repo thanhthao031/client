@@ -5751,6 +5751,7 @@ export type TeamData = {
   chain: TeamSigChainState,
   perTeamKeySeeds?: ?Array<PerTeamKeySeedItem>,
   readerKeyMasks?: ?Array<ReaderKeyMask>,
+  cachedAt: Time,
 }
 
 export type TeamID = string

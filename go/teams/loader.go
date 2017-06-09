@@ -99,6 +99,12 @@ func (l *TeamLoader) loadInner(ctx context.Context, me keybase1.UserVersion, lAr
 		return nil, info, err
 	}
 
+	// TODO check merkle path
+
+	if !lArg.ForceFullReload {
+		return nil, info, fmt.Errorf("TODO: anything other than ForceFullReload could return brokenly stale stuff")
+	}
+
 	// extract team id
 	teamID := lArg.ID
 	if len(lArg.ID) == 0 {

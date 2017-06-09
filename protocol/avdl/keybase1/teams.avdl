@@ -73,6 +73,10 @@ protocol teams {
     // Sorted by generation ascending.
     array<PerTeamKeySeedItem> perTeamKeySeeds;
     array<ReaderKeyMask> readerKeyMasks;
+
+  // Should only be used by TeamLoader
+  // because it is the only mutated field, and thus is not threadsafe to read.
+    Time cachedAt;
   }
 
   // State of a parsed team sigchain.
