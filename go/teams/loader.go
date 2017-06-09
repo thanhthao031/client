@@ -11,6 +11,9 @@ import (
 	"github.com/keybase/client/go/protocol/keybase1"
 )
 
+// TODO: big problem: If you are added to a subteam then you are allowed to see previously hidden
+// parent team sigchain links (the subteam links).
+
 type LoadTeamFreshness int
 
 const (
@@ -147,7 +150,7 @@ func (l *TeamLoader) loadInner(ctx context.Context, me keybase1.UserVersion, lAr
 	// pull from server
 	if cacheResult == nil || cacheTooOld || lArg.ForceSync || lArg.ForceFullReload {
 		if lArg.NoNetwork {
-			return nil, info, fmt.Errorf("cannot force full reload with no-network set")
+			return nil, info, fmt.Errorf("cannot load from server with no-network set")
 		}
 		if cacheResult == nil || lArg.ForceFullReload {
 			res, err = l.loadFromServerFromScratch(ctx, me, teamID)
