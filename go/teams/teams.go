@@ -291,6 +291,7 @@ func (t *Team) applicationKeyForMask(mask keybase1.ReaderKeyMask, secret []byte)
 	return key, nil
 }
 
+// Does not modify this Team. Please load another.
 func (t *Team) ChangeMembership(ctx context.Context, req keybase1.TeamChangeReq) error {
 	keyManager, err := t.getKeyManager()
 	if err != nil {

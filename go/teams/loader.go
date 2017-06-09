@@ -19,6 +19,23 @@ const (
 	LoadTeamFreshnessFRESH  LoadTeamFreshness = 2
 )
 
+// Load a Team from the TeamLoader.
+// Can be called from inside the teams.
+func Load(ctx context.Context, g *libkb.GlobalContext, lArg libkb.LoadTeamArg) (*Team, error) {
+	teamData, err := g.GetTeamLoader().Load(ctx, lArg)
+	if err != nil {
+		return nil, err
+	}
+	return &Team{
+		Contextified: libkb.NewContextified(g),
+		TeamData:     teamData,
+	}, nil
+}
+
+// Loader of keybase1.TeamData objects. Handles caching.
+// Because there is one of this global object and it is attached to G,
+// its Load interface must return a keybase1.TeamData not a teams.Team.
+// To load a teams.Team use the package-level function Load.
 // Threadsafe.
 type TeamLoader struct {
 	libkb.Contextified
@@ -42,7 +59,6 @@ func NewTeamLoaderAndInstall(g *libkb.GlobalContext) *TeamLoader {
 	return l
 }
 
-// TODO change this to return a friendly version of TeamData. Perhaps Team.
 func (l *TeamLoader) Load(ctx context.Context, lArg libkb.LoadTeamArg) (res *keybase1.TeamData, err error) {
 	me, err := l.getMe(ctx)
 	if err != nil {

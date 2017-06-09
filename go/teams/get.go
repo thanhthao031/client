@@ -19,17 +19,10 @@ func Get(ctx context.Context, g *libkb.GlobalContext, name string) (*Team, error
 		return nil, fmt.Errorf("cannot get empty team name")
 	}
 
-	td, err := g.GetTeamLoader().Load(ctx, libkb.LoadTeamArg{
+	return Load(ctx, g, libkb.LoadTeamArg{
 		Name:      name,
 		ForceSync: true,
 	})
-	if err != nil {
-		return nil, err
-	}
-	return &Team{
-		Contextified: libkb.NewContextified(g),
-		TeamData:     td,
-	}, nil
 }
 
 type finder struct {
