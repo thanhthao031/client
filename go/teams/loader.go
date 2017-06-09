@@ -20,10 +20,11 @@ const (
 )
 
 // Threadsafe.
-// TODO consider whether flight lock is necessary
 type TeamLoader struct {
 	libkb.Contextified
 	storage *Storage
+	// Single-flight locks pre team ID.
+	locktab libkb.LockTable
 }
 
 func NewTeamLoader(g *libkb.GlobalContext, storage *Storage) *TeamLoader {
@@ -100,6 +101,9 @@ func (l *TeamLoader) loadInner(ctx context.Context, me keybase1.UserVersion, lAr
 		return nil, info, fmt.Errorf("team loader fault: empty team id")
 	}
 
+	lock := l.locktab.AcquireOnName(ctx, l.G(), teamID.String())
+	defer lock.Release(ctx)
+
 	// pull from cache
 	var cacheResult *keybase1.TeamData
 	if !lArg.ForceFullReload {
@@ -150,9 +154,20 @@ func (l *TeamLoader) loadInner(ctx context.Context, me keybase1.UserVersion, lAr
 	if res == nil {
 		return nil, info, fmt.Errorf("team loader fault: no result")
 	}
+	resID := TeamSigChainState{inner: res.Chain}.GetID()
+	if !resID.Equal(teamID) {
+		return nil, info, fmt.Errorf("retrieved team with wrong id %v != %v", resID, teamID)
+	}
 
 	// Put the result even if it hasn't changed to bump the freshness
 	l.storage.Put(ctx, *res)
+
+	if len(lArg.Name) > 0 {
+		retrievedName := TeamSigChainState{inner: res.Chain}.GetName()
+		if lArg.Name != retrievedName {
+			return nil, info, fmt.Errorf("retrieved team with wrong name %v != %v", retrievedName, lArg.Name)
+		}
+	}
 
 	return res, info, nil
 }
@@ -250,6 +265,13 @@ func (l *TeamLoader) loadFromServerWithCached(ctx context.Context, me keybase1.U
 		return nil, err
 	}
 
+	nNewLinks := state.GetLatestSeqno() - cachedChain.GetLatestSeqno()
+	if nNewLinks > 0 {
+		l.G().Log.CDebugf(ctx, "TeamLoader loaded %v new links: seqno %v -> %v",
+			nNewLinks,
+			cachedChain.GetLatestSeqno(), state.GetLatestSeqno())
+	}
+
 	return res, nil
 }
 
@@ -288,8 +310,10 @@ func (l *TeamLoader) newPlayer(ctx context.Context, me keybase1.UserVersion, lin
 
 	f := newFinder(l.G())
 	player := NewTeamSigChainPlayer(l.G(), f, me, isSubteam)
-	if err := player.AddChainLinks(ctx, links); err != nil {
-		return nil, err
+	if len(links) > 0 {
+		if err := player.AddChainLinks(ctx, links); err != nil {
+			return nil, err
+		}
 	}
 	return player, nil
 }
@@ -297,8 +321,10 @@ func (l *TeamLoader) newPlayer(ctx context.Context, me keybase1.UserVersion, lin
 func (l *TeamLoader) newPlayerWithState(ctx context.Context, me keybase1.UserVersion, state TeamSigChainState, links []SCChainLink) (*TeamSigChainPlayer, error) {
 	f := newFinder(l.G())
 	player := NewTeamSigChainPlayerWithState(l.G(), f, me, state)
-	if err := player.AddChainLinks(ctx, links); err != nil {
-		return nil, err
+	if len(links) > 0 {
+		if err := player.AddChainLinks(ctx, links); err != nil {
+			return nil, err
+		}
 	}
 	return player, nil
 }

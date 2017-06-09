@@ -20,8 +20,8 @@ func Get(ctx context.Context, g *libkb.GlobalContext, name string) (*Team, error
 	}
 
 	td, err := g.GetTeamLoader().Load(ctx, libkb.LoadTeamArg{
-		Name:            name,
-		ForceFullReload: true,
+		Name:      name,
+		ForceSync: true,
 	})
 	if err != nil {
 		return nil, err
